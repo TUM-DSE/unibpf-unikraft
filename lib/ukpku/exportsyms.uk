@@ -1,0 +1,3 @@
+pkey_alloc
+pkey_free
+pkey_mprotect

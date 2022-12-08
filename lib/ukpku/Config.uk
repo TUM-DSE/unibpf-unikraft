@@ -1,0 +1,4 @@
+menuconfig LIBPKU
+	bool "ukpku: MPK/PKU (Memory protection keys)"
+	default n
+	select HAVE_X86PKU

@@ -1,0 +1,6 @@
+$(eval $(call addlib_s,libukpku,$(CONFIG_LIBPKU)))
+
+CINCLUDES-$(CONFIG_LIBPKU)		+= -I$(LIBUKPKU_BASE)/include
+CXXINCLUDES-$(CONFIG_LIBPKU)		+= -I$(LIBUKPKU_BASE)/include
+
+LIBUKPKU_SRCS-y += $(LIBUKPKU_BASE)/pku.c
