@@ -80,10 +80,27 @@ x86_directmap_vaddr_to_paddr(__vaddr_t vaddr)
 	return (__paddr_t)(vaddr - DIRECTMAP_AREA_START);
 }
 
+static int printbinary(unsigned long x, int nbits)
+{
+	unsigned long mask = 1UL << (nbits - 1);
+	char buf[65] = {0};
+	unsigned long i = 0;
+	while (mask != 0) {
+		buf[i] = (mask & x ? '1' : '0');
+		i++;
+		mask >>= 1;
+	}
+	buf[i] = '\0';
+	uk_pr_info("%s\n", buf);
+
+	return nbits;
+}
+
 static inline __pte_t
 pgarch_pte_create(__paddr_t paddr, unsigned long attr, unsigned int level,
 		  __pte_t template, unsigned int template_level __unused)
 {
+	unsigned long flags = 0;
 	__pte_t pte;
 
 	UK_ASSERT(PAGE_ALIGNED(paddr));
@@ -107,7 +124,57 @@ pgarch_pte_create(__paddr_t paddr, unsigned long attr, unsigned int level,
 		pte |= X86_PTE_PWT;
 	}
 
+	/* set protection key */
+	if ((attr & PAGE_PROT_PKEY0)) {
+		flags |= _PAGE_PKEY0;
+	} else {
+		flags &= ~_PAGE_PKEY0;
+	}
+	if ((attr & PAGE_PROT_PKEY1)) {
+		flags |= _PAGE_PKEY1;
+	} else {
+		flags &= ~_PAGE_PKEY1;
+	}
+	if ((attr & PAGE_PROT_PKEY2)) {
+		flags |= _PAGE_PKEY2;
+	} else {
+		flags &= ~_PAGE_PKEY2;
+	}
+	if ((attr & PAGE_PROT_PKEY3)) {
+		flags |= _PAGE_PKEY3;
+	} else {
+		flags &= ~_PAGE_PKEY3;
+	}
+
+#if 0
+	if ((attr & PAGE_PROT_PKEY0) || (attr & PAGE_PROT_PKEY1) || (attr & PAGE_PROT_PKEY2) || (attr & PAGE_PROT_PKEY3)) {
+		uk_pr_info("attr me pkey %x\n", attr);
+		uk_pr_info("flags = %x %x %x %x %x\n", flags, _PAGE_PKEY0, _PAGE_PKEY1, _PAGE_PKEY2, _PAGE_PKEY3);
+		printbinary(flags, 64);
+		printbinary(_PAGE_PKEY2, 64);
+	}
+	if (flags)
+		uk_pr_info("flags = %x\n", flags);
+	if (flags) {
+		uk_pr_info("pte with flags = %x\n", pte | flags);
+		printbinary(pte | flags, 64);
+	}
+
 	/* Take all other bits from template */
+	__pte_t  pte1 = pte;
+	pte1 |= flags;
+	pte1 |= template & (X86_PTE_US |
+			   X86_PTE_PWT |
+			   X86_PTE_PCD |
+			   X86_PTE_ACCESSED |
+			   X86_PTE_DIRTY |
+			   X86_PTE_PAT(level) |
+			   X86_PTE_GLOBAL |
+			   X86_PTE_USER1_MASK |
+			   X86_PTE_USER2_MASK |
+			   X86_PTE_MPK_MASK);
+#endif
+	pte |= flags;
 	pte |= template & (X86_PTE_US |
 			   X86_PTE_ACCESSED |
 			   X86_PTE_DIRTY |
@@ -115,6 +182,17 @@ pgarch_pte_create(__paddr_t paddr, unsigned long attr, unsigned int level,
 			   X86_PTE_USER1_MASK |
 			   X86_PTE_USER2_MASK |
 			   X86_PTE_MPK_MASK);
+#if 0
+	if (flags) {
+		printbinary(X86_PTE_MPK_MASK, 64);
+		uk_pr_info("pte1 with template and flags = %x\n", pte1 | flags);
+		printbinary(pte1 | flags, 64);
+		uk_pr_info("pte with template = %x\n", pte);
+		printbinary(pte, 64);
+		uk_pr_info("pte with template and flags = %x\n", pte | flags);
+		printbinary(pte | flags, 64);
+	}
+#endif
 
 	return pte;
 }

@@ -49,6 +49,16 @@ extern "C" {
 #error Using this header requires enabling the paging API
 #endif /* CONFIG_PAGING */
 
+#define _PAGE_PKEY0     (1UL << 59)
+#define _PAGE_PKEY1     (1UL << 60)
+#define _PAGE_PKEY2     (1UL << 61)
+#define _PAGE_PKEY3     (1UL << 62)
+
+#define PAGE_PROT_PKEY0 0x10    /* pkey bit 0 */
+#define PAGE_PROT_PKEY1 0x20    /* pkey bit 1 */
+#define PAGE_PROT_PKEY2 0x40    /* pkey bit 2 */
+#define PAGE_PROT_PKEY3 0x80    /* pkey bit 3 */
+
 struct uk_falloc;
 
 struct uk_pagetable {
