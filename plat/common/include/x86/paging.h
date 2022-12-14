@@ -93,6 +93,7 @@ pgarch_pte_create(__paddr_t paddr, unsigned long attr, unsigned int level,
 
 	pte = paddr & X86_PTE_PADDR_MASK;
 	pte |= X86_PTE_PRESENT;
+	pte |= X86_PTE_US;
 
 	if (level > PAGE_LEVEL) {
 		UK_ASSERT(level <= PAGE_HUGE_LEVEL);

@@ -45,7 +45,6 @@ __attribute__((always_inline)) static inline uint32_t rdpkru(void)
 	return res;
 }
 
-
 int pkey_alloc(unsigned int flags, unsigned int init_rights)
 {
 	int i = 0;
@@ -61,7 +60,7 @@ int pkey_alloc(unsigned int flags, unsigned int init_rights)
 		return -1;
 	}
 
-	for (i = 0; i< MAX_PKEYS; i++) {
+	for (i = 1; i< MAX_PKEYS; i++) {
 		if (uk_compare_exchange_sync(&pkeys[i], 0, 1) == 1)
 			return i;
 	}

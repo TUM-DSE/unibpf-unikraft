@@ -35,8 +35,10 @@
 #include <uk/arch/paging.h>
 #include <uk/reloc.h>
 
-#define PTE_RO		X86_PTE_PRESENT
-#define PTE_RW		(X86_PTE_PRESENT | X86_PTE_RW)
+#define PTE_RO         (X86_PTE_PRESENT | X86_PTE_US)
+#define PTE_RW         (X86_PTE_PRESENT | X86_PTE_RW | X86_PTE_US)
+//#define PTE_RO		X86_PTE_PRESENT
+//#define PTE_RW		(X86_PTE_PRESENT | X86_PTE_RW)
 
 #define PT_LVL		0
 #define PD_LVL		1

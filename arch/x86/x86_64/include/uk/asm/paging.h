@@ -258,6 +258,7 @@ static inline int ukarch_pte_write(__vaddr_t pt_vaddr, unsigned int lvl,
 #ifdef CONFIG_LIBUKDEBUG
 	UK_ASSERT(idx < PT_Lx_PTES(lvl));
 #endif /* CONFIG_LIBUKDEBUG */
+	pte |= X86_PTE_US;
 
 	*((__pte_t *)pt_vaddr + idx) = pte;
 
