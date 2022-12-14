@@ -9,6 +9,7 @@
 
 int pkey_alloc(unsigned int flags, unsigned int access_rights);
 int pkey_free(int pkey);
+int pkey_set_perm(int prot, int pkey);
 int pkey_mprotect(void *addr, size_t len, int prot, int pkey);
 
 #endif /* __PKU__ */

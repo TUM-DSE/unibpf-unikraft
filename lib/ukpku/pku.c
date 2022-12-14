@@ -28,7 +28,6 @@ __attribute__((always_inline)) static inline void wrpkru(uint32_t val)
 			"xor %%ecx, %%ecx;"
 			"xor %%edx, %%edx;"
 			"wrpkru;"
-			"lfence"
 			:: "r"(val) : "eax", "ecx", "edx");
 }
 
@@ -84,16 +83,44 @@ int pkey_free(int pkey)
 	}
 }
 
+int pkey_set_perm(int prot, int key)
+{
+	uint32_t pkru_val = 0;
+
+	if (unlikely((prot & ~VALID_PROT_MASK) && (prot & ~PROT_NONE))) {
+		errno = -EINVAL;
+		return -1;
+	}
+
+	pkru_val = rdpkru();
+	if (prot == PROT_NONE) {
+		pkru_val |= 1UL << (key * 2);
+		pkru_val |= 1UL << ((key * 2) + 1);
+		goto write_pkru;
+	}
+	if (prot & PROT_READ) {
+		pkru_val &= ~(1UL << (key * 2));
+		pkru_val |= 1UL << ((key*2) + 1);
+	}
+	if (prot & PROT_WRITE) {
+		pkru_val &= ~(1UL << (key*2));
+		pkru_val &= ~(1UL << ((key*2) + 1));
+	}
+
+write_pkru:
+	wrpkru(pkru_val);
+
+	return 0;
+}
+
 int pkey_mprotect(void *addr, size_t len, int prot, int key)
 {
 	bool in_use = 0;
-	//__paddr_t paddr = 0;
 	struct uk_pagetable *pt = ukplat_pt_get_active();
 	int rc = 0;
 	unsigned long pgs = 0;
 	unsigned long attr = 0;
 	unsigned long pbkey = 0;
-	uint32_t pkru_val = 0;
 
 	if (unlikely(len == 0)) {
 		errno = -EINVAL;
@@ -106,37 +133,19 @@ int pkey_mprotect(void *addr, size_t len, int prot, int key)
 		return -1;
 	}
 
-	if (key < 0 || key >= MAX_PKEYS) {
-		errno = -EINVAL;
-		return -1;
-	}
-	in_use = ukarch_load_n(&pkeys[key]);
-	if (in_use == 0) {
-		errno = -EINVAL;
-		return -1;
-	}
-
 	if (unlikely((prot & ~VALID_PROT_MASK) && (prot & ~PROT_NONE))) {
 		errno = -EINVAL;
 		return -1;
 	}
 
-	pkru_val = rdpkru();
-	switch(prot) {
-	case PROT_NONE:
-		pkru_val |= 1UL << (key * 2);
-		pkru_val |= 1UL << ((key * 2) + 1);
-		break;
-	case PROT_READ:
-		pkru_val &= ~(1UL << (key * 2));
-		pkru_val |= 1UL << ((key*2) + 1);
-		break;
-	case PROT_WRITE:
-		pkru_val &= ~(1UL << (key*2));
-		pkru_val &= ~(1UL << ((key*2) + 1));
-		break;
-	default:
-		errno = -EINVAL;;
+	if (key < 0 || key >= MAX_PKEYS) {
+		errno = -EINVAL;
+		return -1;
+	}
+
+	in_use = uk_load_n(&pkeys[key]);
+	if (in_use == 0) {
+		errno = -EINVAL;
 		return -1;
 	}
 
@@ -159,8 +168,12 @@ int pkey_mprotect(void *addr, size_t len, int prot, int key)
 	attr = INSTALL_PKEY(attr, pbkey);
 	pgs = (len + PAGE_SIZE) / PAGE_SIZE;
 	rc = ukplat_page_set_attr(pt, (__vaddr_t)addr, pgs, attr, 0);
+	if (rc < 0)
+		return rc;
 
-	wrpkru(pkru_val);
+	if (prot == PROT_READ & PROT_WRITE)
+		return rc;
+	rc = pkey_set_perm(prot, key);
 
 	return rc;
 }

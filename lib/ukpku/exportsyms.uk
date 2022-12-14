@@ -1,3 +1,4 @@
 pkey_alloc
 pkey_free
+pkey_set_perm
 pkey_mprotect
