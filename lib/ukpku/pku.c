@@ -4,6 +4,7 @@
 #include <uk/atomic.h>
 #include <uk/arch/limits.h>
 #include <uk/pku.h>
+#include <uk/pkru.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -22,30 +23,6 @@
 	(ALIGN_UP((unsigned long)(size), __PAGE_SIZE) / __PAGE_SIZE)
 
 static bool pkeys[MAX_PKEYS] = { 0 };
-
-/* Regarding the lfence here, see Spectre 1.1 paper, 'Speculative Buffer
- *  * Overflows: Attacks and Defenses' */
-__attribute__((always_inline)) static inline void wrpkru(uint32_t val)
-{
-	asm volatile (  "mov %0, %%eax;"
-			"xor %%ecx, %%ecx;"
-			"xor %%edx, %%edx;"
-			"wrpkru;"
-			:: "r"(val) : "eax", "ecx", "edx");
-}
-
-/* Low level C wrapper for RDPKRU: return the current protection key or
- *  * -ENOSPC if the CPU does not support PKU */
-__attribute__((always_inline)) static inline uint32_t rdpkru(void)
-{
-	uint32_t res;
-
-	asm volatile (  "xor %%ecx, %%ecx;"
-			"rdpkru;"
-			"movl %%eax, %0" : "=r"(res) :: "rax", "rdx", "ecx");
-
-	return res;
-}
 
 int pkey_alloc(unsigned int flags, unsigned int init_rights)
 {
