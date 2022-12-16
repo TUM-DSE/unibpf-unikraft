@@ -18,6 +18,9 @@
 
 #define VALID_PROT_MASK	(PROT_READ | PROT_WRITE | PROT_EXEC)
 
+#define size_to_num_pages(size) \
+	(ALIGN_UP((unsigned long)(size), __PAGE_SIZE) / __PAGE_SIZE)
+
 static bool pkeys[MAX_PKEYS] = { 0 };
 
 /* Regarding the lfence here, see Spectre 1.1 paper, 'Speculative Buffer
@@ -166,12 +169,12 @@ int pkey_mprotect(void *addr, size_t len, int prot, int key)
 	attr = CLEAR_PKEY(attr);
 	/* install new pkey */
 	attr = INSTALL_PKEY(attr, pbkey);
-	pgs = (len + PAGE_SIZE) / PAGE_SIZE;
+	pgs = size_to_num_pages(len);;
 	rc = ukplat_page_set_attr(pt, (__vaddr_t)addr, pgs, attr, 0);
 	if (rc < 0)
 		return rc;
 
-	if (prot == PROT_READ & PROT_WRITE)
+	if (prot == (PROT_READ & PROT_WRITE))
 		return rc;
 	rc = pkey_set_perm(prot, key);
 
