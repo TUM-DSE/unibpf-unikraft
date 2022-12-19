@@ -137,8 +137,6 @@ pgarch_pte_create(__paddr_t paddr, unsigned long attr, unsigned int level,
 		if (template & PAGE_ATTR_PROT_WRITE)
 			pte |= X86_PTE_RW;
 
-		if (!(template & PAGE_ATTR_PROT_EXEC))
-			pte |= X86_PTE_NX;
 		pte |= flags;
 	}
 
