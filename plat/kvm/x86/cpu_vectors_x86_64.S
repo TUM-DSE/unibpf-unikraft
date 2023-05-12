@@ -140,7 +140,23 @@ ENTRY(cpu_irq_\irqno)
 	.cfi_offset ss, 24
 	cld
 
-	pushq_cfi $0                        /* no error code */
+	pushq $0
+	pushq %rax
+	pushq %rcx
+	pushq %rdx
+	xor %ecx, %ecx
+	/* save the original pkru */
+	rdpkru
+	movq %rax, 24(%rsp)
+	/* allow access to all memory */
+	xor %eax, %eax
+	xor %edx, %edx
+	wrpkru
+	popq %rdx
+	popq %rcx
+	popq %rax
+
+	pushq_cfi $0                            /* no error code */
 	PUSH_CALLER_SAVE
 	subq $__REGS_PAD_SIZE, %rsp         /* we have some padding */
 	.cfi_adjust_cfa_offset __REGS_PAD_SIZE
@@ -154,6 +170,19 @@ ENTRY(cpu_irq_\irqno)
 	POP_CALLER_SAVE
 	addq $8, %rsp
 	.cfi_adjust_cfa_offset -8
+
+	pushq %rax
+	pushq %rcx
+	pushq %rdx
+	/* restore the original pkru */
+	movq 24(%rsp), %rax
+	xor %rcx, %rcx
+	xor %rdx, %rdx
+	wrpkru
+	popq %rdx
+	popq %rcx
+	popq %rax
+	addq $8, %rsp // remove the pkru value
 
 	iretq
 	.cfi_endproc
