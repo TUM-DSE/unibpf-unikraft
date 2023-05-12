@@ -24,12 +24,16 @@
  */
 /* Taken from solo5 */
 
+#include <x86/lcpu_defs.h>
 #include <x86/traps.h>
 #include <uk/asm/cfi.h>
 #include <uk/intctlr.h>
 #include <kvm-x86/traps.h>
 
 .altmacro
+
+/* necessary for CONFIG_ macros to be accessible */
+#include <uk/config.h>
 
 #define ENTRY(X)     .global X ; .type X, @function ; X:
 
@@ -140,11 +144,16 @@ ENTRY(cpu_irq_\irqno)
 	.cfi_offset ss, 24
 	cld
 
-	pushq $0
+#if CONFIG_HAVE_X86PKU
+	pushq $0 /* reserve space to save the original pkru */
 	pushq %rax
 	pushq %rcx
 	pushq %rdx
 	xor %ecx, %ecx
+	/* check if PKU is enabled */
+	movq %cr4, %rax
+	testq $(X86_CR4_PKE), %rax
+	jz 1f
 	/* save the original pkru */
 	rdpkru
 	movq %rax, 24(%rsp)
@@ -152,9 +161,11 @@ ENTRY(cpu_irq_\irqno)
 	xor %eax, %eax
 	xor %edx, %edx
 	wrpkru
+1:
 	popq %rdx
 	popq %rcx
 	popq %rax
+#endif /* CONFIG_HAVE_X86PKU */
 
 	pushq_cfi $0                            /* no error code */
 	PUSH_CALLER_SAVE
@@ -171,18 +182,25 @@ ENTRY(cpu_irq_\irqno)
 	addq $8, %rsp
 	.cfi_adjust_cfa_offset -8
 
+#if CONFIG_HAVE_X86PKU
 	pushq %rax
 	pushq %rcx
 	pushq %rdx
+	/* check if PKU is enabled */
+	movq %cr4, %rax
+	testq $(X86_CR4_PKE), %rax
+	jz 2f
 	/* restore the original pkru */
 	movq 24(%rsp), %rax
 	xor %rcx, %rcx
 	xor %rdx, %rdx
 	wrpkru
+2:
 	popq %rdx
 	popq %rcx
 	popq %rax
 	addq $8, %rsp // remove the pkru value
+#endif /* CONFIG_HAVE_X86PKU */
 
 	iretq
 	.cfi_endproc
