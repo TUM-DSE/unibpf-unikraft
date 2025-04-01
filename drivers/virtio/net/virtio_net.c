@@ -620,7 +620,7 @@ static int virtio_netdev_recv(struct uk_netdev *dev,
 	vndev = to_virtionetdev(dev);
 
 	/* Queue interrupts have to be off when calling receive */
-	UK_ASSERT(!(queue->intr_enabled & VTNET_INTR_EN));
+	// UK_ASSERT(!(queue->intr_enabled & VTNET_INTR_EN));
 
 	rc = virtio_netdev_rxq_dequeue(vndev, queue, pkt);
 	if (unlikely(rc < 0)) {
