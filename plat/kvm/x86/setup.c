@@ -23,6 +23,7 @@
 #include <uk/plat/common/lcpu.h>
 #include <uk/plat/common/sections.h>
 #include <uk/plat/common/bootinfo.h>
+#include <uk/plat/time.h>
 
 static char *cmdline;
 static __sz cmdline_len;
@@ -75,6 +76,7 @@ void _ukplat_entry(struct lcpu *lcpu, struct ukplat_bootinfo *bi)
 	int rc;
 	void *bstack;
 
+	outb(0xf4, 0xFF); // indicate to outside world that unikraft has now taken over from firmware
 	_libkvmplat_init_console();
 
 	/* Initialize trap vector table */
