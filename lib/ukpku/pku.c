@@ -99,7 +99,10 @@ int pkey_mprotect(void *addr, size_t len, int prot, int key)
 	struct uk_pagetable *pt = ukplat_pt_get_active();
 	int rc = 0;
 	unsigned long pgs = 0;
-	unsigned long attr = 0;
+	/* With the current unikraft API, we can not get current prot, hence
+	 * the pkey_mprotect() caller has to supply one.
+	 */
+	unsigned long attr = prot;
 	unsigned long pbkey = 0;
 
 	if (unlikely(len == 0)) {
@@ -150,10 +153,6 @@ int pkey_mprotect(void *addr, size_t len, int prot, int key)
 	rc = ukplat_page_set_attr(pt, (__vaddr_t)addr, pgs, attr, 0);
 	if (rc < 0)
 		return rc;
-
-	if (prot == (PROT_READ & PROT_WRITE))
-		return rc;
-	rc = pkey_set_perm(prot, key);
 
 	return rc;
 }
